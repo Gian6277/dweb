@@ -6,4 +6,6 @@ Repositorio de materiales y actividades de la Unidad Curricular Electiva Experie
 
 ## Actividades
 
-- [CSS LAB](https://gian6277.github.io/dweb/css-lab/)
+- <a href="https://gian6277.github.io/dweb/css-lab/" target="_blank">
+  Ingresar al CSS LAB
+</a>
