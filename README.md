@@ -1,15 +1,9 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Electiva Experiencia del Usuario</title>
-</head>
-<body>
+# Electiva Experiencia del Usuario
 
-    <h1>Electiva Experiencia del Usuario</h1>
-    <p>Docente: Gianna Giupponi</p>
+**Docente:** Gianna Giupponi
 
-    <a href="css-lab/">Ingresar al CSS LAB</a>
+Repositorio de materiales y actividades de la Unidad Curricular Electiva Experiencia del Usuario.
 
-</body>
-</html>
+## Actividades
+
+- [CSS LAB](https://gian6277.github.io/dweb/css-lab/)
