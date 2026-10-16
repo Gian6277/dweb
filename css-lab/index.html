@@ -20,12 +20,14 @@
 </header>
 
 <main>
+  <section id="examNotice" class="exam-notice" role="status">🔒 Modo evaluación: la primera salida de la pestaña genera una advertencia; la segunda bloquea los desafíos. Las incidencias se registran en el PDF.</section>
   <section class="student-box">
     <label for="studentName"><strong>Estudiante</strong></label>
     <input id="studentName" type="text" placeholder="Nombre y apellido" autocomplete="name">
     <span>Completá tu nombre antes de comenzar.</span>
   </section>
 
+  <section id="examWarning" class="exam-warning hidden" role="alert"></section>
   <section class="intro">
     <div>
       <span class="tag">MODO DESAFÍO</span>
@@ -124,6 +126,9 @@ main > section { ... }</code></pre><p>Podés seleccionar por etiqueta, clase, id
       <button id="nextBtn" disabled>Siguiente →</button>
     </div>
   </section>
+  <div id="examBlock" class="exam-block hidden" role="alertdialog" aria-modal="true" aria-labelledby="blockTitle">
+    <div class="exam-block-card"><h2 id="blockTitle">🔒 Evaluación bloqueada</h2><p>Se detectaron dos salidas de la pestaña. Avisá a la docente. Tus respuestas se conservaron.</p><p>Podés generar el PDF de entrega con el registro de incidencias.</p><button id="blockedPdf">Generar PDF de entrega</button></div>
+  </div>
 </main>
 
 <footer>

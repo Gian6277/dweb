@@ -52,6 +52,105 @@ $("#pdfBtn").onclick=()=>{
    if(y+lines.length*4>280){doc.addPage();y=18}
    doc.text(lines,15,y);y+=lines.length*4+7;
  });
+ // Registro de incidencias en una página independiente.
+ doc.addPage();let yy=18;
+ doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("CONTROL DE EVALUACION - INCIDENCIAS",15,yy);yy+=10;
+ doc.setFont("helvetica","normal");doc.setFontSize(10);
+ doc.text(`Cambios de pestana detectados: ${examSecurity.incidents.length}`,15,yy);yy+=7;
+ doc.text(`Estado: ${examSecurity.locked ? "BLOQUEADA" : "SIN BLOQUEO"}`,15,yy);yy+=9;
+ if(!examSecurity.incidents.length){doc.text("Sin incidencias registradas.",15,yy);}else{
+ examSecurity.incidents.forEach((ev,i)=>{if(yy>265){doc.addPage();yy=18;}
+ const line=`${i+1}. ${ev.time} - Desafio ${ev.challenge} - ${ev.reason}`;
+ doc.text(doc.splitTextToSize(line,175),15,yy);yy+=13;});
+ }
  doc.save(`CSS_LAB_${name.replace(/\s+/g,"_")}.pdf`);
 };
 render();
+
+// ===== CONTROL DE EVALUACION CSS LAB =====
+// Deteccion de perdida de visibilidad; es disuasoria, no un navegador seguro.
+const SECURITY_KEY = 'css_lab_exam_control_v3';
+function readSecurity(){
+  try {return JSON.parse(sessionStorage.getItem(SECURITY_KEY)) || {};}
+  catch(e){return {};}
+}
+const examSecurity = Object.assign({started:false, student:'', locked:false, incidents:[], answers:{}, solved:[], failed:{}, verified:{}, current:0}, readSecurity());
+function saveSecurity(){
+  if(!examSecurity.started)return;
+  examSecurity.student = document.querySelector('#studentName').value.trim();
+  examSecurity.answers = {...answers};
+  examSecurity.answers[current] = document.querySelector('#cssEditor').value;
+  examSecurity.solved = [...solved];
+  examSecurity.failed = {...failedAttempts};
+  examSecurity.verified = {...verifiedAttempts};
+  examSecurity.current = current;
+  try {sessionStorage.setItem(SECURITY_KEY,JSON.stringify(examSecurity));}catch(e){}
+}
+function securityOverlay(){
+  let box=document.querySelector('#securityOverlay');
+  if(!box){
+    box=document.createElement('div');box.id='securityOverlay';
+    box.innerHTML='<div class="security-card" role="alertdialog" aria-modal="true"><h2>⛔ EVALUACIÓN BLOQUEADA</h2><p>Se detectaron dos salidas de la pestaña de evaluación.</p><p>Consultá con la docente. Podés generar el PDF con tu trabajo y el registro de incidencias.</p><button id="securityPdf">Generar PDF de entrega</button></div>';
+    document.body.appendChild(box);
+    box.querySelector('#securityPdf').addEventListener('click',()=>document.querySelector('#pdfBtn').click());
+  }
+  box.hidden=!examSecurity.locked;
+  document.querySelector('#cssEditor').disabled=examSecurity.locked;
+  ['#verifyBtn','#resetBtn','#nextBtn','#prevBtn','#hintBtn'].forEach(sel=>document.querySelector(sel).disabled=examSecurity.locked);
+  document.querySelectorAll('#modules button').forEach(el=>el.disabled=examSecurity.locked);
+}
+function startSecurity(){
+  const name=document.querySelector('#studentName').value.trim();
+  if(!name || examSecurity.locked)return;
+  if(!examSecurity.started){examSecurity.started=true;examSecurity.student=name;saveSecurity();}
+}
+function recordExit(reason){
+  if(!examSecurity.started || examSecurity.locked)return;
+  // visibilitychange y blur pueden ocurrir juntos; contar una sola vez por ausencia.
+  if(examSecurity.away)return;
+  examSecurity.away=true;
+  examSecurity.incidents.push({time:new Date().toLocaleString('es-UY'),challenge:current+1,reason});
+  if(examSecurity.incidents.length>=2)examSecurity.locked=true;
+  saveSecurity();
+  securityOverlay();
+}
+function returnToExam(){
+  if(!examSecurity.away)return;
+  examSecurity.away=false;saveSecurity();securityOverlay();
+  if(!examSecurity.locked && examSecurity.incidents.length===1){
+    alert('⚠ PRIMERA ADVERTENCIA: saliste de la pestaña de evaluación. Otra salida bloqueará el ejercicio.');
+  }
+}
+// Iniciar al escribir el nombre, no esperar a verificar el primer desafío.
+document.querySelector('#studentName').addEventListener('input',startSecurity);
+document.querySelector('#cssEditor').addEventListener('focus',startSecurity);
+document.querySelector('#verifyBtn').addEventListener('click',startSecurity,true);
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)recordExit('Cambio de pestaña o ventana');
+  else returnToExam();
+});
+window.addEventListener('blur',()=>{
+  // blur detecta también clics en barras o diálogos; evitar falsos positivos.
+  if(document.hidden)recordExit('Cambio de pestaña o ventana');
+});
+window.addEventListener('focus',()=>{if(!document.hidden)returnToExam();});
+// Persistir trabajo y prevenir edición o navegación tras bloqueo.
+document.addEventListener('input',()=>{if(examSecurity.started)saveSecurity();});
+document.addEventListener('click',e=>{
+  if(!examSecurity.locked)return;
+  if(e.target.closest('#securityPdf, #pdfBtn'))return;
+  if(e.target.closest('#modules, #verifyBtn, #resetBtn, #nextBtn, #prevBtn, #hintBtn')){
+    e.preventDefault();e.stopImmediatePropagation();
+  }
+},true);
+if(examSecurity.started){
+  document.querySelector('#studentName').value=examSecurity.student || '';
+  answers={...examSecurity.answers};solved=new Set(examSecurity.solved);
+  failedAttempts={...examSecurity.failed};verifiedAttempts={...examSecurity.verified};
+  current=Math.max(0,Math.min(challenges.length-1,examSecurity.current||0));
+  render();
+}
+securityOverlay();
+// Save after verification and navigation (existing handlers run first).
+['#verifyBtn','#nextBtn','#prevBtn','#resetBtn'].forEach(sel=>document.querySelector(sel).addEventListener('click',()=>queueMicrotask(saveSecurity)));
+document.querySelector('#modules').addEventListener('click',()=>queueMicrotask(saveSecurity));
